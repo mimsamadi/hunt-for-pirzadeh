@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Hunt for Pirzadeh</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://telegram.org/js/games.js"></script>
+</head>
+<body>
+  <div id="app" class="app-shell">
+    <!-- Top Arcade Header -->
+    <header class="hud-header">
+      <div class="title-row">
+        <h1 class="game-title">HUNT FOR PIRZADEH</h1>
+        <div class="header-actions">
+          <button id="btn-sound" class="pixel-btn icon-btn" title="Toggle Sound" aria-label="Toggle Sound">SFX:ON</button>
+          <button id="btn-leaderboard" class="pixel-btn icon-btn" title="Leaderboard" aria-label="Leaderboard">TOP</button>
+        </div>
+      </div>
+
+      <div class="hud-stats">
+        <div class="stat-box">
+          <span class="stat-label">SCORE</span>
+          <span id="hud-score" class="stat-value">0</span>
+        </div>
+        <div class="stat-box timer-box">
+          <span class="stat-label">TIME</span>
+          <span id="hud-time" class="stat-value">60</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-label">SPEED</span>
+          <span id="hud-speed" class="stat-value">LVL 1</span>
+        </div>
+      </div>
+
+      <div class="timer-bar-wrap">
+        <div id="timer-bar" class="timer-bar-fill"></div>
+      </div>
+
+      <div class="pirzadeh-status-bar">
+        <span class="status-dot" id="pirzadeh-dot"></span>
+        <span id="pirzadeh-status-text">PIRZADEH: HIDING IN THE BURROWS...</span>
+      </div>
+    </header>
+
+    <!-- Main 12-Hole Playfield -->
+    <main class="playfield-wrapper">
+      <div id="board" class="board" aria-label="12-hole game board">
+        <!-- 12 holes injected by JS -->
+      </div>
+
+      <!-- Floating feedback layer -->
+      <div id="fx-layer" class="fx-layer" aria-hidden="true"></div>
+
+      <!-- Start Overlay -->
+      <section id="screen-start" class="overlay-screen active">
+        <div class="pixel-card">
+          <div class="card-badge">PIXEL ARCADE PROTOTYPE</div>
+          <h2 class="card-title">HUNT FOR<br />PIRZADEH</h2>
+          <p class="card-subtitle">60 seconds. 12 holes. Tap fast — speed ramps up!</p>
+
+          <div class="legend-grid" id="creature-legend">
+            <!-- Populated with pixel sprites from JS -->
+          </div>
+
+          <button id="btn-start" class="pixel-btn primary-btn">START HUNT</button>
+          <p class="hint-text">Best Local Score: <span id="start-best-score">0</span></p>
+        </div>
+      </section>
+
+      <!-- Game Over Overlay -->
+      <section id="screen-gameover" class="overlay-screen">
+        <div class="pixel-card">
+          <div class="card-badge" id="gameover-badge">TIME'S UP!</div>
+          <h2 class="card-title">FINAL SCORE</h2>
+          <div id="final-score" class="final-score-big">0</div>
+
+          <div class="summary-grid" id="gameover-summary">
+            <!-- Populated with hit breakdown -->
+          </div>
+
+          <form id="score-form" class="score-form">
+            <label for="player-name" class="input-label">SAVE TO LEADERBOARD</label>
+            <div class="input-row">
+              <input
+                id="player-name"
+                type="text"
+                maxlength="12"
+                placeholder="YOUR NAME"
+                autocomplete="off"
+                required
+              />
+              <button type="submit" class="pixel-btn accent-btn">SAVE</button>
+            </div>
+          </form>
+          <div id="save-confirmation" class="save-confirmation hidden">SCORE SAVED!</div>
+
+          <div class="gameover-actions">
+            <button id="btn-restart" class="pixel-btn primary-btn">PLAY AGAIN</button>
+            <button id="btn-share-tg" class="pixel-btn accent-btn hidden">SHARE</button>
+            <button id="btn-view-lb" class="pixel-btn">TOP</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Leaderboard Overlay -->
+      <section id="screen-leaderboard" class="overlay-screen">
+        <div class="pixel-card">
+          <div id="lb-badge" class="card-badge">LEADERBOARD</div>
+          <h2 class="card-title">HIGH SCORES</h2>
+          <ol id="leaderboard-list" class="leaderboard-list"></ol>
+          <p id="lb-note" class="lb-note">Scores synced with Telegram leaderboard.</p>
+          <button id="btn-close-lb" class="pixel-btn primary-btn">BACK</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="js/game.js"></script>
+</body>
+</html>
