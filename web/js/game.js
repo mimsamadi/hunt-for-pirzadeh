@@ -4,6 +4,7 @@ import {
   getLeaderboard,
   submitScore,
   getBestScore,
+  initTelegramMiniApp,
   isTelegramMode,
   shareTelegramScore,
 } from './leaderboard.js';
@@ -570,7 +571,7 @@ async function openLeaderboard(returnScreen) {
 // ===== EVENT LISTENERS =====
 btnStart.addEventListener('click', startGame);
 btnRestart.addEventListener('click', startGame);
-btnShareTg.addEventListener('click', shareTelegramScore);
+btnShareTg.addEventListener('click', () => shareTelegramScore(state.score));
 
 btnSound.addEventListener('click', () => {
   const on = audio.toggle();
@@ -608,6 +609,7 @@ scoreFormEl.addEventListener('submit', async (ev) => {
 });
 
 // Boot
+initTelegramMiniApp();
 buildLegend();
 buildBoard();
 refreshBestScore();
