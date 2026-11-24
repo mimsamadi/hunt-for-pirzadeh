@@ -1,10 +1,14 @@
-// 3-tier leaderboard adapter:
+// 4-tier leaderboard adapter:
 // 1. Telegram Serverless (`Telegram.WebApp.Serverless.call`) when hosted on *.tgcloud.ai
-// 2. Telegram Native CloudStorage (`Telegram.WebApp.CloudStorage`) when running inside Telegram Mini App
-// 3. Browser `localStorage` when opened standalone
+// 2. Shared Supabase REST leaderboard when configured
+// 3. Telegram Native CloudStorage (`Telegram.WebApp.CloudStorage`) when running inside Telegram Mini App
+// 4. Browser `localStorage` fallback
 
 const STORAGE_KEY = 'hunt_for_pirzadeh_lb_v1';
 const TG_CLOUD_KEY = 'hfp_scores_v1';
+
+const SUPABASE_URL = 'https://wrzlrpgballwdeefmvqm.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_ozj7RPNGivvupFvw_pmzkQ_JfigJr0d';
 
 const DEFAULT_SCORES = [
   { name: 'PIRZADEH', score: 420, caughtPirzadeh: true },
@@ -50,6 +54,43 @@ export function isServerlessMode() {
 export function isTelegramMode() {
   const tg = getTgWebApp();
   return Boolean(tg && tg.initData);
+}
+
+export function isSharedLeaderboardMode() {
+  return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+}
+
+async function supabaseFetch(path, options = {}) {
+  const headers = {
+    apikey: SUPABASE_ANON_KEY,
+    Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+    'Content-Type': 'application/json',
+    ...(options.headers || {}),
+  };
+  const res = await fetch(`${SUPABASE_URL}${path}`, {
+    ...options,
+    headers,
+  });
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    throw new Error(`Supabase HTTP ${res.status}: ${errText || res.statusText}`);
+  }
+  return res.json();
+}
+
+function getPlayerIdentity(fallbackName) {
+  const user = getTgWebApp()?.initDataUnsafe?.user;
+  if (user?.id) {
+    return {
+      userKey: `tg:${user.id}`,
+      displayName: getTelegramPlayerName(),
+    };
+  }
+  const cleanName = (fallbackName || 'PLAYER').trim().toUpperCase().slice(0, 12) || 'PLAYER';
+  return {
+    userKey: `web:${cleanName.toLowerCase()}`,
+    displayName: cleanName,
+  };
 }
 
 function getTelegramPlayerName() {
@@ -166,6 +207,25 @@ export async function getLeaderboard(limit = 10) {
     return [];
   }
 
+  if (isSharedLeaderboardMode()) {
+    try {
+      const rows = await supabaseFetch(
+        `/rest/v1/hunt_pirzadeh_scores?select=user_key,display_name,best_score,caught_pirzadeh&order=best_score.desc,updated_at.asc&limit=${limit}`
+      );
+      if (Array.isArray(rows)) {
+        return rows.map((r, idx) => ({
+          position: idx + 1,
+          userKey: r.user_key,
+          name: r.display_name,
+          score: r.best_score,
+          caughtPirzadeh: Boolean(r.caught_pirzadeh),
+        }));
+      }
+    } catch (err) {
+      console.error('Failed to fetch Supabase leaderboard:', err);
+    }
+  }
+
   if (hasTgCloudStorage()) {
     const list = await readTgCloudScores();
     return list.sort((a, b) => b.score - a.score).slice(0, limit);
@@ -192,6 +252,32 @@ export async function submitScore({ name, score, caughtPirzadeh }) {
       };
     } catch (err) {
       console.error('Failed to submit score to Telegram Serverless:', err);
+      return { ok: false, error: err.message };
+    }
+  }
+
+  if (isSharedLeaderboardMode()) {
+    try {
+      const { userKey, displayName } = getPlayerIdentity(name);
+      const res = await supabaseFetch('/rest/v1/rpc/submit_pirzadeh_score', {
+        method: 'POST',
+        body: JSON.stringify({
+          p_user_key: userKey,
+          p_display_name: displayName,
+          p_score: numericScore,
+          p_caught_pirzadeh: Boolean(caughtPirzadeh),
+        }),
+      });
+      const row = Array.isArray(res) ? res[0] : res;
+      const leaderboard = await getLeaderboard(10);
+      return {
+        ok: true,
+        updated: Boolean(row?.updated),
+        bestScore: row?.best_score ?? numericScore,
+        leaderboard,
+      };
+    } catch (err) {
+      console.error('Failed to submit score to Supabase:', err);
       return { ok: false, error: err.message };
     }
   }
@@ -243,6 +329,22 @@ export async function getBestScore() {
       return 0;
     }
     return 0;
+  }
+
+  if (isSharedLeaderboardMode()) {
+    try {
+      const userId = getTgWebApp()?.initDataUnsafe?.user?.id;
+      if (userId) {
+        const rows = await supabaseFetch(
+          `/rest/v1/hunt_pirzadeh_scores?select=best_score&user_key=eq.${encodeURIComponent(`tg:${userId}`)}&limit=1`
+        );
+        if (Array.isArray(rows) && rows.length > 0) {
+          return rows[0].best_score;
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch Supabase personal best:', err);
+    }
   }
 
   const list = await getLeaderboard(1);

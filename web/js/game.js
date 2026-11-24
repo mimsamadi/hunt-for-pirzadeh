@@ -6,6 +6,7 @@ import {
   getBestScore,
   initTelegramMiniApp,
   isServerlessMode,
+  isSharedLeaderboardMode,
   isTelegramMode,
   shareTelegramScore,
 } from './leaderboard.js';
@@ -527,17 +528,20 @@ function updateHud(elapsedSec = null) {
 // ===== LEADERBOARD UI =====
 async function renderLeaderboard() {
   const srvMode = isServerlessMode();
+  const sharedMode = isSharedLeaderboardMode();
   const tgMode = isTelegramMode();
-  lbBadgeEl.textContent = srvMode
-    ? 'TELEGRAM LIVE SCORES'
-    : tgMode
-      ? 'TELEGRAM CLOUD SCORES'
-      : 'LOCAL PROTOTYPE';
-  lbNoteEl.textContent = srvMode
-    ? 'Live serverless leaderboard shared across Telegram.'
-    : tgMode
-      ? 'Saved in your Telegram CloudStorage across devices.'
-      : 'Local browser scores (launch from Telegram to sync).';
+  lbBadgeEl.textContent =
+    srvMode || sharedMode
+      ? 'GLOBAL LEADERBOARD'
+      : tgMode
+        ? 'TELEGRAM CLOUD SCORES'
+        : 'LOCAL PROTOTYPE';
+  lbNoteEl.textContent =
+    srvMode || sharedMode
+      ? 'Live global leaderboard shared across all players.'
+      : tgMode
+        ? 'Saved in your Telegram CloudStorage across devices.'
+        : 'Local browser scores (launch from Telegram to sync).';
 
   leaderboardListEl.innerHTML = '<li class="lb-row"><span class="lb-name">LOADING...</span></li>';
   const list = await getLeaderboard(10);
